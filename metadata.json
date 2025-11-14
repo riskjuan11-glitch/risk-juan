@@ -1,0 +1,5 @@
+{
+  "name": "KYC QA Assistant",
+  "description": "An intelligent KYC QA tool that uses Gemini to automatically extract, normalize, and format data from screenshots of review dialogs or spreadsheets into Google Sheets-compatible rows.",
+  "requestFramePermissions": []
+}
