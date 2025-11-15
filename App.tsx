@@ -120,6 +120,18 @@ const ImageIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+const PasteIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-2 4h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zm-4-4a2 2 0 012-2h2a2 2 0 012 2" />
+    </svg>
+);
+
+
+const UploadIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+    </svg>
+);
 
 const LoadingSpinner: React.FC = () => (
   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
@@ -130,21 +142,14 @@ interface ImageUploaderProps {
   onImageSelect: (file: File) => void;
   imagePreview: string | null;
   isLoading: boolean;
-  isPreviewVisible: boolean;
+  fileInputRef: React.RefObject<HTMLInputElement>;
 }
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, imagePreview, isLoading, isPreviewVisible }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, imagePreview, isLoading, fileInputRef }) => {
   const dropzoneRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       onImageSelect(event.target.files[0]);
-    }
-  };
-
-  const handleDropzoneClick = () => {
-    if (!imagePreview) {
-        fileInputRef.current?.click();
     }
   };
 
@@ -169,19 +174,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, imagePrevi
   }, [onImageSelect]);
   
   return (
-    <div ref={dropzoneRef} onClick={handleDropzoneClick} className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-md h-40 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors cursor-pointer">
+    <div ref={dropzoneRef} className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-md h-40 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors">
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
       {imagePreview ? (
          <div className="w-full h-full relative">
-            {isPreviewVisible ? (
-                <img src={imagePreview} alt="KYC Screenshot" className="w-full h-full object-contain rounded-md" />
-            ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-md">
-                    <ImageIcon className="h-8 w-8 text-gray-400" />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Image Preview is Hidden</p>
-                </div>
-            )}
-            
+            <img src={imagePreview} alt="KYC Screenshot" className="w-full h-full object-contain rounded-md" />
             {isLoading && (
               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
                 <LoadingSpinner />
@@ -190,8 +187,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, imagePrevi
          </div>
       ) : (
         <div className="text-center">
-            <p className="text-base font-semibold text-indigo-600 dark:text-indigo-400">Paste (Ctrl+V or Ctrl+Shift+V) or Drop Image Here</p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Click to browse file system.</p>
+            <ImageIcon className="h-10 w-10 text-gray-400 dark:text-gray-500 mx-auto" />
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Drop an image here or press <span className="font-semibold text-indigo-600 dark:text-indigo-400">Ctrl+V</span> to paste
+            </p>
+            <div className="mt-4">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <UploadIcon className="h-4 w-4" />
+                    Upload File
+                </button>
+            </div>
         </div>
       )}
     </div>
@@ -312,35 +317,24 @@ const KycDataForm: React.FC<KycDataFormProps> = ({ data, onDataChange, onReset }
 interface KycQaPageProps {
   sharedKycData: KycData;
   onKycDataUpdate: React.Dispatch<React.SetStateAction<KycData>>;
+  onDataChange: (field: keyof KycData, value: string) => void;
+  imagePreview: string | null;
+  isLoading: boolean;
+  error: string | null;
+  onImageSelect: (file: File) => void;
+  onReset: () => void;
 }
-function KycQaPage({ sharedKycData, onKycDataUpdate }: KycQaPageProps) {
-  const [lastAuditor, setLastAuditor] = useState<string>(AUDITORS[0]);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
-
-  const resetState = useCallback(() => {
-    onKycDataUpdate(getInitialKycData(lastAuditor));
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-    setImagePreview(null);
-    setImageFile(null);
-    setIsLoading(false);
-    setError(null);
-    setIsPreviewVisible(false);
-  }, [imagePreview, lastAuditor, onKycDataUpdate]);
-
-
-  const handleImageSelect = useCallback((file: File) => {
-    resetState();
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-    setImageFile(file);
-    setIsPreviewVisible(false);
-  }, [resetState]);
+function KycQaPage({
+  sharedKycData,
+  onKycDataUpdate,
+  onDataChange,
+  imagePreview,
+  isLoading,
+  error,
+  onImageSelect,
+  onReset,
+}: KycQaPageProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePaste = useCallback((event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -349,47 +343,19 @@ function KycQaPage({ sharedKycData, onKycDataUpdate }: KycQaPageProps) {
       if (items[i].type.indexOf('image') !== -1) {
         const file = items[i].getAsFile();
         if (file) {
-          handleImageSelect(file);
+          onImageSelect(file);
         }
         break;
       }
     }
-  }, [handleImageSelect]);
-
-  const handleAdvancedPaste = useCallback(async () => {
-    try {
-      const clipboardItems = await navigator.clipboard.read();
-      for (const item of clipboardItems) {
-        const imageType = item.types.find(type => type.startsWith('image/'));
-        if (imageType) {
-          const blob = await item.getType(imageType);
-          const file = new File([blob], 'pasted-image.png', { type: imageType });
-          handleImageSelect(file);
-          return;
-        }
-      }
-    } catch (err) {
-      console.error('Advanced paste error:', err);
-      setError('Failed to paste. Please check browser permissions for clipboard access and try again.');
-    }
-  }, [handleImageSelect]);
-  
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'v') {
-      event.preventDefault();
-      handleAdvancedPaste();
-    }
-  }, [handleAdvancedPaste]);
+  }, [onImageSelect]);
 
   useEffect(() => {
     window.addEventListener('paste', handlePaste);
-    window.addEventListener('keydown', handleKeyDown);
-    
     return () => {
       window.removeEventListener('paste', handlePaste);
-      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handlePaste, handleKeyDown]);
+  }, [handlePaste]);
 
 
   useEffect(() => {
@@ -400,49 +366,6 @@ function KycQaPage({ sharedKycData, onKycDataUpdate }: KycQaPageProps) {
       onKycDataUpdate(prev => ({ ...prev, csv_row: newCsvRow, accountStatusCsvRow: newAccountStatusCsvRow, manualFreezeCsvRow: newManualFreezeCsvRow }));
     }
   }, [sharedKycData, onKycDataUpdate]);
-
-  const processImage = useCallback(async (file: File) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const base64Image = await fileToBase64(file);
-      const dataFromApi = await extractKycDataFromImage(base64Image, file.type);
-      
-      const formattedDate = getFormattedDate();
-
-      const fullData: KycData = {
-          ...getInitialKycData(lastAuditor),
-          ...dataFromApi,
-          date: dataFromApi.date || formattedDate,
-          auditor: dataFromApi.auditor || lastAuditor,
-          kyc_status: dataFromApi.kyc_status || 'Failed',
-      };
-      
-      onKycDataUpdate(fullData);
-
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [lastAuditor, onKycDataUpdate]);
-
-  const handleProcessImage = () => {
-    if (imageFile) {
-      processImage(imageFile);
-    }
-  };
-
-  const handleDataChange = (field: keyof KycData, value: string) => {
-    if (field === 'auditor') {
-      setLastAuditor(value);
-    }
-    onKycDataUpdate(prev => ({ ...prev, [field]: value }));
-  };
 
   return (
     <div className="p-4">
@@ -460,31 +383,8 @@ function KycQaPage({ sharedKycData, onKycDataUpdate }: KycQaPageProps) {
         )}
 
         <main className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div>
-            <div>
-              <ImageUploader onImageSelect={handleImageSelect} imagePreview={imagePreview} isLoading={isLoading} isPreviewVisible={isPreviewVisible} />
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-2">
-               <button 
-                 onClick={handleProcessImage}
-                 disabled={!imageFile || isLoading}
-                 className="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed"
-               >
-                 {isLoading ? 'Extracting Data...' : 'Extract Data'}
-               </button>
-               <button 
-                 onClick={() => setIsPreviewVisible(!isPreviewVisible)}
-                 disabled={!imagePreview}
-                 className="inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 focus:outline-none disabled:bg-gray-200 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
-               >
-                 {isPreviewVisible ? <EyeSlashIcon className="h-5 w-5 mr-2" /> : <EyeIcon className="h-5 w-5 mr-2" />}
-                 {isPreviewVisible ? 'Hide' : 'Show'}
-               </button>
-            </div>
-          </div>
-          <div>
-            <KycDataForm data={sharedKycData} onDataChange={handleDataChange} onReset={resetState}/>
-          </div>
+            <ImageUploader onImageSelect={onImageSelect} imagePreview={imagePreview} isLoading={isLoading} fileInputRef={fileInputRef} />
+            <KycDataForm data={sharedKycData} onDataChange={onDataChange} onReset={onReset}/>
         </main>
       </div>
     </div>
@@ -783,7 +683,7 @@ const IdScannerPage: React.FC = () => {
             <div className="max-w-xl mx-auto">
                 <header className="text-center mb-3">
                     <h1 className="text-xl font-semibold text-slate-900 dark:text-white">ID Card Data Extractor (OCR)</h1>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">**Paste or drop an image to start the automatic extraction.**</p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400"><span className="font-semibold">Paste (Ctrl+V) or drop an image</span> to start automatic extraction.</p>
                 </header>
 
                 {error && (
@@ -809,7 +709,7 @@ const IdScannerPage: React.FC = () => {
                          ) : (
                             <div className="text-center">
                                 <p className="text-base font-semibold text-indigo-600 dark:text-indigo-400">Drop Image Here</p>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Or use the buttons below for Paste / Upload.</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">or press <span className="font-semibold text-indigo-600 dark:text-indigo-400">Ctrl+V</span> to paste</p>
                             </div>
                          )}
                          {isLoading && (
@@ -821,23 +721,23 @@ const IdScannerPage: React.FC = () => {
                     <div className="flex items-center justify-center gap-2 mt-3">
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
-                            Paste / Upload
+                           <UploadIcon className="h-5 w-5" /> Upload
                         </button>
                         <button
                             onClick={handleReExtract}
                             disabled={!imageFile || isLoading}
                             className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300"
                         >
-                            Re-Extract Data
+                            Re-Extract
                         </button>
                         <button
                             onClick={() => setIsPreviewVisible(!isPreviewVisible)}
                             disabled={!imagePreview}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
+                            className="inline-flex items-center justify-center p-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
                         >
-                            {isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
+                            {isPreviewVisible ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                         </button>
                     </div>
                 </div>
@@ -861,7 +761,74 @@ const IdScannerPage: React.FC = () => {
 // --- Main App Component (Router) ---
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'kyc' | 'tgTicket' | 'idScanner'>('kyc');
+  
+  // State lifted from KycQaPage to preserve it across navigation
   const [sharedKycData, setSharedKycData] = useState<KycData>(() => getInitialKycData(AUDITORS[0]));
+  const [lastAuditor, setLastAuditor] = useState<string>(AUDITORS[0]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [kycIsLoading, setKycIsLoading] = useState<boolean>(false);
+  const [kycError, setKycError] = useState<string | null>(null);
+
+  // Handlers for KycQaPage, now living in the main App component
+  const resetKycState = useCallback(() => {
+    setSharedKycData(getInitialKycData(lastAuditor));
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview(null);
+    setKycIsLoading(false);
+    setKycError(null);
+  }, [imagePreview, lastAuditor]);
+
+  const processKycImage = useCallback(async (file: File) => {
+    setKycIsLoading(true);
+    setKycError(null);
+    try {
+      const base64Image = await fileToBase64(file);
+      const dataFromApi = await extractKycDataFromImage(base64Image, file.type);
+      
+      const formattedDate = getFormattedDate();
+
+      const fullData: KycData = {
+          ...getInitialKycData(lastAuditor),
+          ...dataFromApi,
+          date: dataFromApi.date || formattedDate,
+          auditor: dataFromApi.auditor || lastAuditor,
+          kyc_status: dataFromApi.kyc_status || 'Failed',
+      };
+      
+      setSharedKycData(fullData);
+
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setKycError(err.message);
+      } else {
+        setKycError("An unexpected error occurred.");
+      }
+    } finally {
+      setKycIsLoading(false);
+    }
+  }, [lastAuditor]);
+
+  const handleKycImageSelect = useCallback((file: File) => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    
+    setSharedKycData(getInitialKycData(lastAuditor)); // Reset data for new image
+    setKycError(null);
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    processKycImage(file);
+  }, [imagePreview, lastAuditor, processKycImage]);
+
+  const handleKycDataChange = (field: keyof KycData, value: string) => {
+    if (field === 'auditor') {
+      setLastAuditor(value);
+    }
+    setSharedKycData(prev => ({ ...prev, [field]: value }));
+  };
 
   const NavButton: React.FC<{ page: 'kyc' | 'tgTicket' | 'idScanner'; label: string }> = ({ page, label }) => {
     const isActive = currentPage === page;
@@ -890,7 +857,16 @@ export default function App() {
         </div>
       </nav>
       <div>
-        {currentPage === 'kyc' && <KycQaPage sharedKycData={sharedKycData} onKycDataUpdate={setSharedKycData} />}
+        {currentPage === 'kyc' && <KycQaPage 
+            sharedKycData={sharedKycData} 
+            onKycDataUpdate={setSharedKycData}
+            onDataChange={handleKycDataChange}
+            imagePreview={imagePreview}
+            isLoading={kycIsLoading}
+            error={kycError}
+            onImageSelect={handleKycImageSelect}
+            onReset={resetKycState}
+        />}
         {currentPage === 'tgTicket' && <TGTicketPage sharedKycData={sharedKycData} />}
         {currentPage === 'idScanner' && <IdScannerPage />}
       </div>
